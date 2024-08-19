@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1
+# Stage 1: get sources from source code and dependency and build golang bin
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /app
+
+# 1.1 Download dependencies
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+
+
+
+# 1.2 Copy source code and build
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o badnlab_assignment .
+
+# Stage 2: build a small image that only contains the binary
+FROM debian:bullseye-slim AS runner
+
+# 2.1 Set workdir
+WORKDIR /app
+
+# 2.2 Copy binary from builder
+COPY --from=builder /app/badnlab_assignment .
+COPY --from=builder /app/config ./config
+
+# 2.3 Set permission
+RUN chmod +x badnlab_assignment
+
+# 2.4 Set env
+CMD ./badnlab_assignment
+
+# 暴露端口
+EXPOSE 8010
