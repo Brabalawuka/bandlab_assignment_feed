@@ -3,11 +3,15 @@
 package main
 
 import (
+	"bandlab_feed_server/config"
+	"bandlab_feed_server/dal"
 
 	"github.com/cloudwego/hertz/pkg/app/server"
 )
 
 func main() {
+	config.Init()
+	dal.InitDal(config.AppConfig)
 
 	h := server.New(
 		server.WithHostPorts("0.0.0.0:8010"),

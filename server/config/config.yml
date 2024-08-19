@@ -1,0 +1,13 @@
+mongo:
+  url: mongodb://localhost:27017
+
+
+
+r2:
+  presign_expiration_sec: 600
+  access_key: "access"
+  secret_key: "secret"
+  account_id: "account"
+  bucket_name: "bucket"
+
+
