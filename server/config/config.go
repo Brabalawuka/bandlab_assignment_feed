@@ -11,6 +11,7 @@ import (
 
 type Config struct {
 	MongoURL string
+	MongoDatabase string
 
 	R2AccessKey                 string
 	R2SecretKey                 string
@@ -39,6 +40,7 @@ func LoadConfig() {
 
 	AppConfig = &Config{
 		MongoURL:                    viper.GetString("mongo.url"),
+		MongoDatabase:               viper.GetString("mongo.initdb_database"),
 		R2AccessKey:                 viper.GetString("r2.access_key"),
 		R2SecretKey:                 viper.GetString("r2.secret_key"),
 		R2AccountID:                 viper.GetString("r2.account_id"),

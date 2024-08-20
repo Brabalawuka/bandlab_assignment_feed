@@ -1,5 +1,6 @@
 mongo:
-  url: mongodb://localhost:27017
+  url: mongodb://localhost:27017/?authSource=admin
+  initdb_database: "database"
 
 
 

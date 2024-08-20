@@ -17,6 +17,7 @@ func main() {
 		server.WithHostPorts("0.0.0.0:8010"),
 	)
 
+	
 	register(h)
 	h.Spin()
 }
