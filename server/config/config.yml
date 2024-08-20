@@ -10,5 +10,7 @@ r2:
   secret_key: "secret"
   account_id: "account"
   bucket_name: "bucket"
+  processed_bucket_url: "https://pub-e7ae7f4305084b3ea6e32696f803a332.r2.dev/600x600/"
+  
 
 

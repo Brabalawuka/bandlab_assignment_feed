@@ -3,11 +3,29 @@
 package main
 
 import (
-	handler "bandlab_feed_server/biz/handler"
+	"bandlab_feed_server/handler"
+
 	"github.com/cloudwego/hertz/pkg/app/server"
 )
 
 func register(r *server.Hertz) {
 	r.GET("/ping", handler.Ping)
+
+	v1 := r.Group("/v1")
+
+	// Create a post
+	v1.POST("/api/posts", WrapHandler(handler.CreatePost))
+
+	// Get Presigned URL for image upload
+	v1.GET("/api/posts/image-presign", WrapHandler(handler.GetPresignedURLCore))
+
+	// Get all posts
+	v1.GET("/api/posts", nil)
+
+	// Create a comment
+	v1.POST("/api/posts/:postId/comments", WrapHandler(handler.CreateComment))
+
+	// Delete a comment
+	v1.DELETE("/api/posts/:postId/comments/:commentId", nil)
 
 }
