@@ -63,7 +63,20 @@ func HandleGetPost(ctx context.Context, req *dto.FetchPostsReq) (*dto.FetchPosts
 	var posts []*dao.Post
 	var hasMore bool
 	switch req.OrderBy {
+
+	case dto.OrderByCommentCount:
+		var err error
+		var previousCompositeKey *string
+		if req.PreviousCursor != "" {
+			previousCompositeKey = &req.PreviousCursor
+		}
+		posts, hasMore, err = service.GetPostService().FetchPostsByCompositCursor(ctx, req.Limit, previousCompositeKey)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "[HandleGetPost] error fetching posts: %v", err)
+			return nil, err
+		}
 	case dto.OrderByPostID:
+	default:
 		var err error
 		var postID *primitive.ObjectID
 		if req.PreviousCursor != "" {
@@ -75,17 +88,6 @@ func HandleGetPost(ctx context.Context, req *dto.FetchPostsReq) (*dto.FetchPosts
 			postID = &objectId
 		}
 		posts, hasMore, err = service.GetPostService().FetchPostsByPostIDCursor(ctx, req.Limit, postID)
-		if err != nil {
-			hlog.CtxErrorf(ctx, "[HandleGetPost] error fetching posts: %v", err)
-			return nil, err
-		}
-	case dto.OrderByCommentCount:
-		var err error
-		var previousCompositeKey *string
-		if req.PreviousCursor != "" {
-			previousCompositeKey = &req.PreviousCursor
-		}
-		posts, hasMore, err = service.GetPostService().FetchPostsByCompositCursor(ctx, req.Limit, previousCompositeKey)
 		if err != nil {
 			hlog.CtxErrorf(ctx, "[HandleGetPost] error fetching posts: %v", err)
 			return nil, err

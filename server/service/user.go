@@ -3,9 +3,11 @@ package service
 import (
 	"bandlab_feed_server/common/errs"
 	"bandlab_feed_server/model/dao"
+	"bandlab_feed_server/service/mocks"
 	"sync"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.uber.org/mock/gomock"
 )
 
 // UserService defines the interface for user operations
@@ -37,8 +39,16 @@ func InitUserService() {
 }
 
 // GetUserService returns the initialized user service
+//go:generate mockgen -destination=./mocks/mock_user_service.go -package=mocks -source=./user.go
 func GetUserService() UserService {
 	return userSrv
+}
+
+// SetMockPostService For unit testing purpose only
+func SetMockUserService(ctrl *gomock.Controller) *mocks.MockUserService {
+	mocks := mocks.NewMockUserService(ctrl)
+	userSrv = mocks
+	return mocks
 }
 
 // UserServiceImpl is the implementation of UserService

@@ -82,6 +82,23 @@ To fetch the posts, the server will use the composite sorting cursor to fetch th
 - Client will fetch the posts until no more posts are returned.
 - Client will have to deduplicate the posts by the post id, since the sorting cursor is updated dynamically.
 
+## Due to time limitation
+
+- Image resizing and formating is not implemented. The lambda function is mocked by a goroutine.
+- Unit tests are not fully covered. only one unit test /handler/post_test.go is implemented. It demos how to test the handler with gomock
+- Integration test does not cover all the cases. Only happy path is tested.
+
+## How to run
+
+- Ensure you machine has docker and docker-compose installed, ensure you computer has go1.21 installed.
+- Clone the project and go to root folder
+- Replace the .env file with correct values (cloudflare r2 secrets)
+- Run `docker-compose up` to start the server and the database
+- Run 'cd server' to go to server folder
+- Run `go test -v ./integration_test/. -run ^TestIntegration$` to test using the integration test
+
+
+
 ## Future Improvements
 
 1. Use multipart upload for weak network / Let client to resize the image down to 5MB before upload

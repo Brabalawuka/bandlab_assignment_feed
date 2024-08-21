@@ -50,6 +50,7 @@ func TestIntegration(t *testing.T) {
 	// Step 4, try to create 5 post using the image just uploaded
 	TestCreate3Post(t)
 
+	hlog.Infof("Sleeping for 3 seconds to wait for image processing")
 	time.Sleep(3 * time.Second) // wait for the image to be processed
 
 	// Step 5, test Fetch Post Operation, should return more posts with last posts same as created post

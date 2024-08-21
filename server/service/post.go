@@ -5,10 +5,12 @@ import (
 	"bandlab_feed_server/dal/mongodb"
 	"bandlab_feed_server/model/dao"
 	"bandlab_feed_server/model/dto"
+	"bandlab_feed_server/service/mocks"
 	"context"
 	"sync"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.uber.org/mock/gomock"
 )
 
 // Post represents a post in the system
@@ -22,6 +24,7 @@ type Post struct {
 }
 
 // PostService defines the interface for post operations
+//go:generate mockgen -destination=./mocks/mock_post_service.go -package=mocks -source=./post.go
 type PostService interface {
 	CreatePost(ctx context.Context, req *dto.CreatePostReq) (*dto.CreatePostResp, error)
 	HasImage(req *dto.CreatePostReq) bool
@@ -55,6 +58,13 @@ func InitPostService() {
 // GetPostService returns the initialized post service
 func GetPostService() PostService {
 	return postSrv
+}
+
+// SetMockPostService For unit testing purpose only
+func SetMockPostService(ctrl *gomock.Controller) *mocks.MockPostService {
+	mocks := mocks.NewMockPostService(ctrl)
+	postSrv = mocks
+	return mocks
 }
 
 // PostServiceImpl is the implementation of PostService

@@ -5,6 +5,7 @@ import (
 	"bandlab_feed_server/config"
 	"bandlab_feed_server/dal/cloudflare"
 	"bandlab_feed_server/model/dto"
+	"bandlab_feed_server/service/mocks"
 	"bytes"
 	"context"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.uber.org/mock/gomock"
 )
 
 var presignAllowedTypes = map[string]string{
@@ -25,7 +27,8 @@ var presignAllowedTypes = map[string]string{
 	".bmp":  "image/bmp",
 }
 
-// ImageService 定义了图像操作的接口
+// ImageService defines the interface for image operations
+//go:generate mockgen -destination=./mocks/mock_image_service.go -package=mocks -source=./image.go
 type ImageService interface {
 	GetPresignedURL(ctx context.Context, filename string, filesize int64) (resp *dto.GetPresignedURLResponse, err error)
 	ResizeAndUploadImage(ctx context.Context, imagePath string) (uploadedPath string, err error)
@@ -54,6 +57,13 @@ func InitImageService() {
 
 func GetImageService() ImageService {
 	return imageSrv
+}
+
+// SetMockImageService For unit testing purpose only
+func SetMockImageService(ctrl *gomock.Controller) *mocks.MockImageService {
+	mocks := mocks.NewMockImageService(ctrl)
+	imageSrv = mocks
+	return mocks
 }
 
 // ImageServiceImpl is the implementation of ImageService
