@@ -8,6 +8,7 @@ import (
 type Comment struct {
 	Id             primitive.ObjectID `bson:"_id,omitempty"` // Comment ID
 	PostId         primitive.ObjectID `bson:"postId"`        // Post ID
+	ParentId       primitive.ObjectID `bson:"parentId"`      // Parent comment ID (optional)
 	Content        string             `bson:"content"`       // Comment content
 	Status         CommentStatus      `bson:"status"`        // Comment status	
 	Creator        primitive.ObjectID `bson:"creator"`       // Comment creator ID

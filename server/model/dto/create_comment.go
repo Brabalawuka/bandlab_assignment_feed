@@ -1,5 +1,6 @@
 package dto
 
+
 // CreateCommentReq is a struct that represents the CreateCommentReq DTO.
 type CreateCommentReq struct {
 	Content  string `json:"content" vd:"len($)>0&& len($)<=1000"` //TODO: Dynamic validation of content length

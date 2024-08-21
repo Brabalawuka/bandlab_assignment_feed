@@ -8,3 +8,4 @@ func Init() {
 	InitUserService()
 	InitCommentService()
 }
+

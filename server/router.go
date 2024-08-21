@@ -20,12 +20,12 @@ func register(r *server.Hertz) {
 	v1.GET("/api/posts/image-presign", WrapHandler(handler.HandleGetPresignedURL))
 
 	// Get all posts
-	v1.GET("/api/posts", nil)
+	v1.GET("/api/posts", WrapHandler(handler.HandleGetPost))
 
 	// Create a comment
 	v1.POST("/api/posts/:postId/comments", WrapHandler(handler.CreateComment))
 
 	// Delete a comment
-	v1.DELETE("/api/posts/:postId/comments/:commentId", nil)
+	v1.DELETE("/api/posts/:postId/comments/:commentId", WrapHandler(handler.DeleteComment))
 
 }

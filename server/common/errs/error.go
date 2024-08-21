@@ -53,42 +53,45 @@ const (
 	ErrCodeUnauthorized     = 1002
 	ErrCodeResourceNotFound = 1003
 	ErrCodeInvalidInput     = 1004
-	ErrCodeUnknownError     = 5000
-	ErrCodeInternalError    = 5001
+	ErrCodeUnknownError     = 1005
+	ErrCodeInternalError    = 1006
 
-	
-	ErrCodeR2ImageNotFound        = 3001
-	ErrCodeR2ImageUploadFailed    = 3002
-	ErrCodeR2ImageProcessFailed   = 3003
-	ErrCodeR2ImageDownLoadFailed  = 3004
-	ErrCodeInvalidContentType     = 3005
-	ErrCodeImageExistsCheckFailed = 3008
-	ErrCodePostNotFound           = 3300
-	ErrCodePostWithVersionNotFound = 3301
-	ErrCodeCommentNotAllowed      = 3100
-	ErrCodeUserNotFound           = 3200
-	ErrCodePostFetchFailed        = 3201
-	ErrCodePostDataDecodeFailed   = 3202
+	ErrCodeR2ImageNotFound            = 3001
+	ErrCodeR2ImageUploadFailed        = 3002
+	ErrCodeR2ImageProcessFailed       = 3003
+	ErrCodeR2ImageDownLoadFailed      = 3004
+	ErrCodeInvalidContentType         = 3005
+	ErrCodeImageExistsCheckFailed     = 3008
+	ErrCodeCommentNotAllowed          = 3100
+	ErrCodeCommentNotFound            = 3101
+	ErrCodeCommentOperationNotAllowed = 3102
+	ErrCodeUserNotFound               = 3200
+	ErrCodePostFetchFailed            = 3201
+	ErrCodePostDataDecodeFailed       = 3202
+	ErrCodePostNotFound               = 3203
+	ErrCodePostWithVersionNotFound    = 3204
 )
 
 // Predefined errors
 var (
-	ErrInvalidRequest         = NewBizError(ErrCodeInvalidInput, "Invalid Request")
-	ErrUnauthorized           = NewBizError(ErrCodeUnauthorized, "Unauthorized")
-	ErrResourceNotFound       = NewBizError(ErrCodeResourceNotFound, "Resource not found")
-	ErrInvalidInput           = NewBizError(ErrCodeInvalidInput, "Invalid input")
-	ErrInternalServer         = NewInternalError(ErrCodeInternalError, "Internal server error")
-	ErrR2ImageDownLoadFailed  = NewInternalError(ErrCodeR2ImageDownLoadFailed, "Failed to download image")
-	ErrR2ImageNotFound        = NewBizError(ErrCodeR2ImageNotFound, "Image not found")
-	ErrR2ImageUploadFailed    = NewInternalError(ErrCodeR2ImageUploadFailed, "Failed to upload image")
-	ErrUserNotFound           = NewBizError(ErrCodeUserNotFound, "User not found")
-	ErrInvalidContentType     = NewBizError(ErrCodeInvalidContentType, "Invalid presign content type")
-	ErrImageExistsCheckFailed = NewInternalError(ErrCodeImageExistsCheckFailed, "Failed to check if image exists in R2")
-	ErrCommentNotAllowed      = NewBizError(ErrCodeCommentNotAllowed, "Comment not allowed")
-	ErrPostNotFound           = NewBizError(ErrCodePostNotFound, "Post not found")
-	ErrPostWithVersionNotFound = NewBizError(ErrCodePostWithVersionNotFound, "Post with version not found")
-	ErrPostFetchFailed        = NewInternalError(ErrCodePostFetchFailed, "Failed to fetch posts")
-	ErrPostDataDecodeFailed   = NewInternalError(ErrCodePostDataDecodeFailed, "Failed to decode posts")
+	ErrInvalidRequest             = NewBizError(ErrCodeInvalidInput, "Invalid Request")
+	ErrUnauthorized               = NewBizError(ErrCodeUnauthorized, "Unauthorized")
+	ErrResourceNotFound           = NewBizError(ErrCodeResourceNotFound, "Resource not found")
+	ErrInvalidInput               = NewBizError(ErrCodeInvalidInput, "Invalid input")
+	ErrInternalServer             = NewInternalError(ErrCodeInternalError, "Internal server error")
+	ErrR2ImageDownLoadFailed      = NewInternalError(ErrCodeR2ImageDownLoadFailed, "Failed to download image")
+	ErrR2ImageNotFound            = NewBizError(ErrCodeR2ImageNotFound, "Image not found")
+	ErrR2ImageUploadFailed        = NewInternalError(ErrCodeR2ImageUploadFailed, "Failed to upload image")
+	ErrUserNotFound               = NewBizError(ErrCodeUserNotFound, "User not found")
+	ErrInvalidContentType         = NewBizError(ErrCodeInvalidContentType, "Invalid presign content type")
+	ErrImageExistsCheckFailed     = NewInternalError(ErrCodeImageExistsCheckFailed, "Failed to check if image exists in R2")
+	ErrCommentNotAllowed          = NewBizError(ErrCodeCommentNotAllowed, "Comment not allowed")
+	ErrCommentNotFound            = NewBizError(ErrCodeCommentNotFound, "Comment not found")
+	ErrCommentOperationNotAllowed = NewBizError(ErrCodeCommentOperationNotAllowed, "Comment operation not allowed")
+	ErrPostNotFound               = NewBizError(ErrCodePostNotFound, "Post not found")
+	ErrPostWithVersionNotFound    = NewBizError(ErrCodePostWithVersionNotFound, "Post with version not found")
+	ErrPostFetchFailed            = NewInternalError(ErrCodePostFetchFailed, "Failed to fetch posts")
+	ErrPostDataDecodeFailed       = NewInternalError(ErrCodePostDataDecodeFailed, "Failed to decode posts")
 )
 
 // GetAPIError converts an error to APIError if possible, or returns a generic internal server error

@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// Entry point for creating a post
 func HandleCreatePost(ctx context.Context, req *dto.CreatePostReq) (*dto.CreatePostResp, error) {
 
 	// Create post in post service
@@ -41,7 +42,7 @@ func HandleCreatePost(ctx context.Context, req *dto.CreatePostReq) (*dto.CreateP
 	return post, nil
 }
 
-
+// Entry point for getting a presigned URL
 func HandleGetPresignedURL(ctx context.Context, req *dto.GetPresignedURLRequest) (*dto.GetPresignedURLResponse, error) {
 
 	// Get presigned URL from image service
@@ -55,6 +56,7 @@ func HandleGetPresignedURL(ctx context.Context, req *dto.GetPresignedURLRequest)
 	return resp, nil
 }
 
+// Entry point for getting posts
 func HandleGetPost(ctx context.Context, req *dto.FetchPostsReq) (*dto.FetchPostsResp, error) {
 	var posts []*dao.Post
 	var hasMore bool

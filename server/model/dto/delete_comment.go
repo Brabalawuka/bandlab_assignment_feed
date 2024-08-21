@@ -2,9 +2,12 @@ package dto
 
 // DeleteCommentReq is a struct that represents the DeleteCommentReq DTO.
 type DeleteCommentReq struct {
-	CommentId string `json:"commentId" vd:"len($)>0"` // Comment ID
+	PostId string `path:"postId" vd:"len($)>0"` // Post ID
+	CommentId string `path:"commentId" vd:"len($)>0"` // Comment ID
 	UserId    string `header:"userId" vd:"len($)>0"` // User ID
 }
+
+
 
 // DeleteCommentResp is a struct that represents the DeleteCommentResp DTO.
 type DeleteCommentResp struct {
