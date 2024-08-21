@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -43,28 +44,41 @@ func (s *PostServiceImpl) UpdatePostStatusAndImagePath(ctx context.Context, post
 // If the comment is deleted, it will be removed from the post comment count
 func (s *PostServiceImpl) UpdatePostComments(ctx context.Context, postId primitive.ObjectID, comment *dao.Comment, oldPost *dao.Post) (err error) {
 	if oldPost == nil {
-		oldPost, err = s.GetPostDaoById(ctx, postId)
+		oldPost, err = s.FetchPostDaoById(ctx, postId)
 		if err != nil {
-			return errs.ErrPostNotFound
+			hlog.CtxErrorf(ctx, "error fetching post, id: %s, error: %v", postId, err)
+			return errs.ErrInternalServer
 		}
+		if oldPost == nil {
+			hlog.CtxErrorf(ctx, "post not found, id: %s", postId)
+			return errs.ErrPostNotFound
+		}	
 	}
-	var newCommentCount int32
-	var newRecentComments []*dao.Comment
-	var now time.Time
-	var newLastCommentAtMilli int64
+	// update the post comments info
+	var(
+		newCommentCount int32		
+		newRecentComments []*dao.Comment
+		now time.Time
+		newLastCommentAtMilli int64
+	)
+
 	if comment.Status == dao.CommentStatusDeleted {
 		newCommentCount = oldPost.CommentCount - 1
-		for _, c := range oldPost.RecentComments {
-			if c.Id != comment.Id {
-				newRecentComments = append(newRecentComments, c)
-			}
+		if newCommentCount < 0 { // this should not happen but just in case
+			hlog.CtxWarnf(ctx, "[UpdatePostComments] comment count is negative, postId: %s, commentId: %s", postId, comment.Id)
+			newCommentCount = 0
 		}
+		newRecentComments = filterComments(oldPost.RecentComments, comment.Id) // filter out the deleted comment
 		newLastCommentAtMilli = oldPost.LastCommentAtMilli
 	} else {
 		newCommentCount = oldPost.CommentCount + 1
-		newRecentComments = append(oldPost.RecentComments, comment)
+		newRecentComments = append([]*dao.Comment{comment}, filterComments(oldPost.RecentComments, comment.Id)...)
+		if len(newRecentComments) > s.recentCommentsCount {
+			newRecentComments = newRecentComments[:s.recentCommentsCount]
+		}
 		newLastCommentAtMilli = now.UnixMilli()
 	}
+	// new composite key for the post cursor
 	var newCompositeKey string = util.GenerateCompositeKey(int32(newCommentCount), now, oldPost.Id)
 
 	collection := s.mongoClient.Collection("posts")
@@ -76,6 +90,7 @@ func (s *PostServiceImpl) UpdatePostComments(ctx context.Context, postId primiti
 			"recentComments":     newRecentComments,
 			"lastCommentAtMilli": newLastCommentAtMilli,
 			"compositeKey":       newCompositeKey,
+			"version":            oldPost.Version + 1,
 		},
 	}
 
@@ -88,4 +103,15 @@ func (s *PostServiceImpl) UpdatePostComments(ctx context.Context, postId primiti
 	}
 
 	return nil
+}
+
+// Helper function to filter out a specific comment by ID
+func filterComments(comments []*dao.Comment, excludeID primitive.ObjectID) []*dao.Comment {
+	var filtered = make([]*dao.Comment, 0, len(comments))
+	for _, c := range comments {
+		if c.Id != excludeID {
+			filtered = append(filtered, c)
+		}
+	}
+	return filtered
 }

@@ -14,10 +14,10 @@ func register(r *server.Hertz) {
 	v1 := r.Group("/v1")
 
 	// Create a post
-	v1.POST("/api/posts", WrapHandler(handler.CreatePost))
+	v1.POST("/api/posts", WrapHandler(handler.HandleCreatePost))
 
 	// Get Presigned URL for image upload
-	v1.GET("/api/posts/image-presign", WrapHandler(handler.GetPresignedURLCore))
+	v1.GET("/api/posts/image-presign", WrapHandler(handler.HandleGetPresignedURL))
 
 	// Get all posts
 	v1.GET("/api/posts", nil)

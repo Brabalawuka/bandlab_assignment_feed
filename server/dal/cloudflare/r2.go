@@ -22,6 +22,7 @@ type Config struct {
 	SecretKey  string
 	AccountId  string
 	BucketName string
+	PublicBucketURL string
 }
 
 // R2Service defines the interface for R2 operations
@@ -29,6 +30,7 @@ type R2Service interface {
 	GetClient() *s3.Client
 	GetPresignClient() *s3.PresignClient
 	GetBucketName() string
+	GetPublicBucketURL() string
 	PresignPutObject(context context.Context, input *s3.PutObjectInput, expiration time.Duration) (string, error)
 	UploadFile(ctx context.Context, fileBuffer *bytes.Buffer, uploadPath string) error
 	DownloadFile(ctx context.Context, downloadPath string, fileBuffer *bytes.Buffer) error
@@ -40,6 +42,7 @@ type R2Client struct {
 	client        *s3.Client
 	presignClient *s3.PresignClient
 	bucketName    string
+	publicBucketURL string
 }
 
 var (
@@ -75,6 +78,7 @@ func Initialize(cfg *Config) error {
 			client:        client,
 			presignClient: s3.NewPresignClient(client),
 			bucketName:    cfg.BucketName,
+			publicBucketURL: cfg.PublicBucketURL,
 		}
 	})
 	return initError
@@ -117,6 +121,14 @@ func (c *R2Client) GetBucketName() string {
 		return ""
 	}
 	return c.bucketName
+}
+
+func (c *R2Client) GetPublicBucketURL() string {
+	if c == nil {
+		hlog.Error("[r2service] R2 client is not initialized")
+		return ""
+	}
+	return c.publicBucketURL
 }
 
 // PresignPutObject generates a presigned URL for a PutObject request

@@ -12,6 +12,7 @@ func InitDal(config *config.Config) {
 		SecretKey:  config.R2SecretKey,
 		AccountId:  config.R2AccountId,
 		BucketName: config.R2BucketName,
+		PublicBucketURL: config.R2PublicBucketURL,
 	})
 	if err != nil {
 		panic(err)

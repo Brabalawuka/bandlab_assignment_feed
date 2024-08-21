@@ -21,6 +21,14 @@
 2. Posts retrival are in desc order of **Comment Count**. However, post may have duplicated comment count and it's hard to sort based on cursor approach. Thus, we will design a **composite sorting** cursor (comment count, last comment time, part of post Id).
 3. Updating comment count of posts in parallel may cause issue, thus we will use **optimistic lock** to update the post for MVP. However, this may cause issue in the future if the server is under heavy load.
 
+## Highlights
+
+1. **Composite Sorting Cursor** is used to sort the posts by comment count, last comment time and part of post Id.
+2. **Optimistic Lock** is used to update the post for MVP.
+3. **Organised Code** Stucture **handler--sevice--dal** and fulfill single responsibility principle.
+4. **Error Handling** is implemented using **custom error** with **error code** and **error message**.
+5. **Pre-signed URL** is used to upload image to OSS.
+
 ## Tech Stack
 
 1. Server: Golang
@@ -34,12 +42,13 @@
 
 ## ER Diagram
 
-- A composite sorting key is used to sort the posts. The key is a combination of comment count, last comment time and part of post Id. This ensures no duplicated sorting key.
+- A composite sorting key is used to sort the posts as the cursor. The key is a combination of comment count, last comment time and part of post Id. This ensures no duplicated sorting key.
 - Composite Key Structure 12 Bytes:
-  - 0-4 bytes: commentCount (uint32, 4.1Billion Comments)
+  - 1-4 bytes: commentCount (uint32, 3.1Billion comments)
   - 5-8 bytes: lastCommentAt (unix timestamp, till 2109)
   - 9-12 bytes: first 4 bytes of PostId (unix timestamp, till 2109)
  Encode as Base64 string
+- Storage of image using **path** instead of **url** as the URL should be dynamically generated due to possible change of CDN domain name.
 
 ![ER](readme/er.jpeg#center)
 
@@ -66,11 +75,12 @@ Delete comment will mark the comment deleted, meanwhile async modify comment cou
 
 ## Fetching Posts
 
-To fetch the posts, the server will use the composite sorting cursor to fetch the posts. The server will fetch the posts in batches and return the posts to the client. The client will then use the last post in the batch to fetch the next batch of posts. If the server returns duplicated posts, the client will need to filter them out.
-
-Since the sorting key updates dynamically, there is possibility of duplicated posts and missing posts.
+To fetch the posts, the server will use the composite sorting cursor to fetch the posts. The server will fetch the posts in batches and return the posts to the client. The client will then use the last post in the batch to fetch the next batch of posts. Since the sorting key updates dynamically, there is possibility of duplicated posts and missing posts. 
 
 ![FETCH](readme/fetch.jpeg#center)
+
+- Client will fetch the posts until no more posts are returned.
+- Client will have to deduplicate the posts by the post id, since the sorting cursor is updated dynamically.
 
 ## Future Improvements
 
@@ -87,3 +97,4 @@ Since the sorting key updates dynamically, there is possibility of duplicated po
 2. Add CICD and Test coverages and finish all UNITS tests
 3. Add monitoring + alerting / logging + tracing for the services and DB
 4. Add rate limiting and authentication for the services
+5. **Sync with PM to ensure all compromisation is accepted and could be fixed in the future**

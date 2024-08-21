@@ -61,8 +61,14 @@ func (s *CommentServiceImpl) CreateComment(ctx context.Context, req *dto.CreateC
 		hlog.CtxErrorf(ctx, "invalid post Id, id: %s, error: %v", req.PostId, err)
 		return nil, errs.ErrInvalidRequest
 	}
+	// Fetch user info
+	user, err := GetUserService().GetUserById(userId)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "failed to get user, error: %v", err)
+		return nil, errs.ErrInternalServer
+	}
 	//Fetch the post to verify the post exists
-	post, err := GetPostService().GetPostDaoById(ctx, postId)
+	post, err := GetPostService().FetchPostDaoById(ctx, postId)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "failed to get post, error: %v", err)
 		return nil, errs.ErrInternalServer
@@ -83,7 +89,8 @@ func (s *CommentServiceImpl) CreateComment(ctx context.Context, req *dto.CreateC
 		PostId:         postId,
 		Content:        req.Content,
 		Status:         "ACTIVE",
-		Creator:        userId,
+		Creator:        user.Id,
+		CreatorName:    user.Name, // TODO: Suport dynamic name in the future
 		CreatedAtMilli: createdAt,
 	}
 
@@ -95,19 +102,24 @@ func (s *CommentServiceImpl) CreateComment(ctx context.Context, req *dto.CreateC
 	}
 
 	// Asynchronously update the post's comment count and recent comments
+	// This is a mock function, in the future, we will use a message queue to update the post
+	// - An async function to update the post num may cause inconsistency
+	// - A retry of max 10 times with 100ms interval is used to handle the race condition
 	async.Go(ctx, "UpdatePostComments", func(ctx context.Context) {
 		var err error
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 10; i++ { // retry 10 times
 			err = GetPostService().UpdatePostComments(ctx, postId, comment, post)
 			if err == nil {
 				break
 			}
 			if err != nil && err != errs.ErrPostWithVersionNotFound {
-				hlog.CtxErrorf(ctx, "failed to update post comments, error: %v", err)
 				break
 			}
 			// optimistic lock, retry after 100ms
 			time.Sleep(time.Millisecond * 100)
+		}
+		if err != nil {
+			hlog.CtxErrorf(ctx, "failed to update post comments, error: %v", err)
 		}
 	})
 

@@ -67,6 +67,8 @@ const (
 	ErrCodePostWithVersionNotFound = 3301
 	ErrCodeCommentNotAllowed      = 3100
 	ErrCodeUserNotFound           = 3200
+	ErrCodePostFetchFailed        = 3201
+	ErrCodePostDataDecodeFailed   = 3202
 )
 
 // Predefined errors
@@ -85,6 +87,8 @@ var (
 	ErrCommentNotAllowed      = NewBizError(ErrCodeCommentNotAllowed, "Comment not allowed")
 	ErrPostNotFound           = NewBizError(ErrCodePostNotFound, "Post not found")
 	ErrPostWithVersionNotFound = NewBizError(ErrCodePostWithVersionNotFound, "Post with version not found")
+	ErrPostFetchFailed        = NewInternalError(ErrCodePostFetchFailed, "Failed to fetch posts")
+	ErrPostDataDecodeFailed   = NewInternalError(ErrCodePostDataDecodeFailed, "Failed to decode posts")
 )
 
 // GetAPIError converts an error to APIError if possible, or returns a generic internal server error

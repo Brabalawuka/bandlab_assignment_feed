@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bandlab_feed_server/config"
 	"bandlab_feed_server/dal/mongodb"
 	"bandlab_feed_server/model/dao"
 	"bandlab_feed_server/model/dto"
@@ -24,7 +25,9 @@ type Post struct {
 type PostService interface {
 	CreatePost(ctx context.Context, req *dto.CreatePostReq) (*dto.CreatePostResp, error)
 	HasImage(req *dto.CreatePostReq) bool
-	GetPostDaoById(ctx context.Context, postId primitive.ObjectID) (*dao.Post, error)
+	FetchPostDaoById(ctx context.Context, postId primitive.ObjectID) (*dao.Post, error)
+	FetchPostsByPostIDCursor(ctx context.Context, limit int64, previousPostId *primitive.ObjectID) (posts []*dao.Post, hasMore bool, err error)
+	FetchPostsByCompositCursor(ctx context.Context, limit int64, previousCompositKey *string) (posts []*dao.Post, hasMore bool, err error) 
 	UpdatePostStatusAndImagePath(ctx context.Context, postId string, imagePath string) error
 	UpdatePostComments(ctx context.Context, postId primitive.ObjectID, comment *dao.Comment, oldPost *dao.Post) error
 }
@@ -43,6 +46,7 @@ func InitPostService() {
 		}
 		postSrv = &PostServiceImpl{
 			mongoCollection: "posts",
+			recentCommentsCount: config.AppConfig.PostRecentCommentsCount,
 			mongoClient:     mongoClient,
 		}
 	})
@@ -56,5 +60,6 @@ func GetPostService() PostService {
 // PostServiceImpl is the implementation of PostService
 type PostServiceImpl struct {
 	mongoCollection string
+	recentCommentsCount int
 	mongoClient     mongodb.MongoService
 }

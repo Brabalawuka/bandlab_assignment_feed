@@ -6,18 +6,19 @@ import (
 
 // Comment represents a comment in the database
 type Comment struct {
-	Id             primitive.ObjectID `bson:"_id,omitempty"`
-	PostId         primitive.ObjectID `bson:"postId"`
-	Content        string             `bson:"content"`
-	Status         CommentStatus      `bson:"status"`
-	Creator        primitive.ObjectID `bson:"creator"`
-	CreatedAtMilli int64              `bson:"createdAtMilli"`
+	Id             primitive.ObjectID `bson:"_id,omitempty"` // Comment ID
+	PostId         primitive.ObjectID `bson:"postId"`        // Post ID
+	Content        string             `bson:"content"`       // Comment content
+	Status         CommentStatus      `bson:"status"`        // Comment status	
+	Creator        primitive.ObjectID `bson:"creator"`       // Comment creator ID
+	CreatorName    string             `bson:"creatorName"`   // Comment creator name
+	CreatedAtMilli int64              `bson:"createdAtMilli"` // Comment created time in milliseconds
 }
 
 // CommentStatus represents the status of a comment
 type CommentStatus string
 
 const (
-	CommentStatusPosted  CommentStatus = "POSTED"
-	CommentStatusDeleted CommentStatus = "DELETED"
+	CommentStatusPosted  CommentStatus = "POSTED"  // Comment is posted
+	CommentStatusDeleted CommentStatus = "DELETED" // Comment is deleted
 )

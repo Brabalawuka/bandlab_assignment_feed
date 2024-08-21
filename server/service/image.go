@@ -4,6 +4,7 @@ import (
 	"bandlab_feed_server/common/errs"
 	"bandlab_feed_server/config"
 	"bandlab_feed_server/dal/cloudflare"
+	"bandlab_feed_server/model/dto"
 	"bytes"
 	"context"
 	"fmt"
@@ -24,12 +25,16 @@ var presignAllowedTypes = map[string]string{
 	".bmp":  "image/bmp",
 }
 
+const (
+	PublicImageHost = "https://storage.googleapis.com/bandlab-feed-public/images/"
+)
+
 // ImageService 定义了图像操作的接口
 type ImageService interface {
-	GetProcessedFileURLById(id string) string
-	GetPresignedURL(ctx context.Context, filename string, filesize int64) (url string, filePath string, err error)
+	GetPresignedURL(ctx context.Context, filename string, filesize int64) (resp *dto.GetPresignedURLResponse, err error)
 	ResizeAndUploadImage(ctx context.Context, imagePath string) (uploadedPath string, err error)
 	RawImageExists(ctx context.Context, imagePath string) (bool, error) // New method
+	GetPublicImageURL(ctx context.Context, imagePath string) (url string, err error)
 }
 
 var (
@@ -44,7 +49,9 @@ func InitImageService() {
 			panic("R2 service is not initialized")
 		}
 		imageSrv = &ImageServiceImpl{
-			r2Service: r2Service,
+			OriginalImageStoragePath:  config.AppConfig.OriginalImagePath,
+			ProcessedImageStoragePath: config.AppConfig.ProcessedImagePath,
+			r2Service:                 r2Service,
 		}
 	})
 }
@@ -55,31 +62,33 @@ func GetImageService() ImageService {
 
 // ImageServiceImpl is the implementation of ImageService
 type ImageServiceImpl struct {
-	r2Service cloudflare.R2Service
+	OriginalImageStoragePath  string
+	ProcessedImageStoragePath string
+	r2Service                 cloudflare.R2Service
 }
 
-// GetProcessedFilePathById returns the processed file path by the image Id
-func (s *ImageServiceImpl) GetProcessedFileURLById(id string) string {
-	return fmt.Sprintf("%s%s.jpg", config.AppConfig.R2ProcessedImageURL, id)
+// GetPublicImageURL implements ImageService.
+func (s *ImageServiceImpl) GetPublicImageURL(ctx context.Context, imagePath string) (url string, err error) {
+	return fmt.Sprintf("%s%s", s.r2Service.GetPublicBucketURL(), imagePath), nil
 }
 
 // GetOriginalFilePathById returns the original file path by the image Id
 func (s *ImageServiceImpl) GetOriginalFilePathByFileName(fileName string) string {
-	return fmt.Sprintf("original/%s", fileName)
+	return fmt.Sprintf("%s/%s", s.OriginalImageStoragePath, fileName)
 }
 
 // GetPresignedURL generates a presigned URL for uploading an object
-func (s *ImageServiceImpl) GetPresignedURL(ctx context.Context, filename string, filesize int64) (url string, filePath string, err error) {
+func (s *ImageServiceImpl) GetPresignedURL(ctx context.Context, filename string, filesize int64) (resp *dto.GetPresignedURLResponse, err error) {
 	fileBase := filepath.Base(filename)
 	fileExt := filepath.Ext(fileBase)
 	contentType := ""
 	if allowedType, ok := presignAllowedTypes[fileExt]; !ok {
 		hlog.CtxErrorf(ctx, "[ImageServiceImpl] presign invalid content type: %s", fileExt)
-		return "", "", errs.ErrInvalidContentType
+		return nil, errs.ErrInvalidContentType
 	} else {
 		contentType = allowedType
 	}
-	newImageId := primitive.NewObjectID().Hex() 
+	newImageId := primitive.NewObjectID().Hex()
 	newFilePath := s.GetOriginalFilePathByFileName(newImageId + fileExt)
 
 	input := &s3.PutObjectInput{
@@ -89,11 +98,17 @@ func (s *ImageServiceImpl) GetPresignedURL(ctx context.Context, filename string,
 		ContentLength: aws.Int64(filesize),
 	}
 
-	url, err = cloudflare.GetR2Service().PresignPutObject(ctx, input, time.Duration(config.AppConfig.R2ImagePresignExpirationSec)*time.Second)
+	expireSec := config.AppConfig.R2ImagePresignExpirationSec
+	now := time.Now()
+	url, err := cloudflare.GetR2Service().PresignPutObject(ctx, input, time.Duration(expireSec)*time.Second)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
-	return url, newFilePath, nil
+	return &dto.GetPresignedURLResponse{
+		URL:        url,
+		ImagePath:   newFilePath,
+		ExpiresAtUnix: now.Unix() + int64(expireSec),
+	}, nil
 }
 
 // ResizeAndUploadImage resizes the image and uploads it to R2
@@ -114,7 +129,7 @@ func (s *ImageServiceImpl) ResizeAndUploadImage(ctx context.Context, imagePath s
 	// TODO: for MVP, skip the resize and format part due to time limitation
 
 	// Prepare the upload path
-	uploadPath := fmt.Sprintf("600x600/%s%s", filepath.Base(imagePath), filepath.Ext(imagePath))
+	uploadPath := fmt.Sprintf("%s/%s%s", s.ProcessedImageStoragePath, filepath.Base(imagePath), filepath.Ext(imagePath))
 
 	// Upload the file back to R2
 	err = cloudflare.GetR2Service().UploadFile(ctx, &buf, uploadPath)
