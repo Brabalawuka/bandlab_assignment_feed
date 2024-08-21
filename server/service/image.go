@@ -25,10 +25,6 @@ var presignAllowedTypes = map[string]string{
 	".bmp":  "image/bmp",
 }
 
-const (
-	PublicImageHost = "https://storage.googleapis.com/bandlab-feed-public/images/"
-)
-
 // ImageService 定义了图像操作的接口
 type ImageService interface {
 	GetPresignedURL(ctx context.Context, filename string, filesize int64) (resp *dto.GetPresignedURLResponse, err error)
@@ -74,7 +70,7 @@ func (s *ImageServiceImpl) GetPublicImageURL(ctx context.Context, imagePath stri
 
 // GetOriginalFilePathById returns the original file path by the image Id
 func (s *ImageServiceImpl) GetOriginalFilePathByFileName(fileName string) string {
-	return fmt.Sprintf("%s/%s", s.OriginalImageStoragePath, fileName)
+	return fmt.Sprintf("%s%s", s.OriginalImageStoragePath, fileName)
 }
 
 // GetPresignedURL generates a presigned URL for uploading an object
@@ -125,11 +121,11 @@ func (s *ImageServiceImpl) ResizeAndUploadImage(ctx context.Context, imagePath s
 		return "", errs.ErrR2ImageDownLoadFailed
 	}
 
-	// Resize and reformat the image
+	// Resize and reformat the image Mock
 	// TODO: for MVP, skip the resize and format part due to time limitation
 
 	// Prepare the upload path
-	uploadPath := fmt.Sprintf("%s/%s%s", s.ProcessedImageStoragePath, filepath.Base(imagePath), filepath.Ext(imagePath))
+	uploadPath := fmt.Sprintf("%s%s", s.ProcessedImageStoragePath, filepath.Base(imagePath))
 
 	// Upload the file back to R2
 	err = cloudflare.GetR2Service().UploadFile(ctx, &buf, uploadPath)
@@ -151,3 +147,4 @@ func (s *ImageServiceImpl) RawImageExists(ctx context.Context, imagePath string)
 	}
 	return exists, nil
 }
+

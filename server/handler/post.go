@@ -5,9 +5,11 @@ import (
 	"bandlab_feed_server/model/dao"
 	"bandlab_feed_server/model/dto"
 	"bandlab_feed_server/service"
+	"bandlab_feed_server/util"
 	"bandlab_feed_server/util/async"
 	"context"
 	"path/filepath"
+	"strings"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -38,7 +40,7 @@ func HandleCreatePost(ctx context.Context, req *dto.CreatePostReq) (*dto.CreateP
 		})
 	}
 
-	hlog.CtxDebugf(ctx, "Successfully created post: %v, resp: %v", req, post)
+	hlog.CtxDebugf(ctx, "Successfully created post: %s, resp: %s", req, post)
 	return post, nil
 }
 
@@ -60,7 +62,6 @@ func HandleGetPresignedURL(ctx context.Context, req *dto.GetPresignedURLRequest)
 func HandleGetPost(ctx context.Context, req *dto.FetchPostsReq) (*dto.FetchPostsResp, error) {
 	var posts []*dao.Post
 	var hasMore bool
-	var nextCursor string
 	switch req.OrderBy {
 	case dto.OrderByPostID:
 		var err error
@@ -78,11 +79,10 @@ func HandleGetPost(ctx context.Context, req *dto.FetchPostsReq) (*dto.FetchPosts
 			hlog.CtxErrorf(ctx, "[HandleGetPost] error fetching posts: %v", err)
 			return nil, err
 		}
-		nextCursor = posts[len(posts)-1].Id.Hex()
 	case dto.OrderByCommentCount:
 		var err error
 		var previousCompositeKey *string
-		if req.PreviousCursor != "" {	
+		if req.PreviousCursor != "" {
 			previousCompositeKey = &req.PreviousCursor
 		}
 		posts, hasMore, err = service.GetPostService().FetchPostsByCompositCursor(ctx, req.Limit, previousCompositeKey)
@@ -90,7 +90,6 @@ func HandleGetPost(ctx context.Context, req *dto.FetchPostsReq) (*dto.FetchPosts
 			hlog.CtxErrorf(ctx, "[HandleGetPost] error fetching posts: %v", err)
 			return nil, err
 		}
-		nextCursor = posts[len(posts)-1].CompositeKey
 	}
 
 	var responsePosts []*dto.Post
@@ -102,14 +101,13 @@ func HandleGetPost(ctx context.Context, req *dto.FetchPostsReq) (*dto.FetchPosts
 		responsePosts = append(responsePosts, dtoPost)
 	}
 
-
 	var resp = &dto.FetchPostsResp{
 		Posts:          responsePosts,
 		HasMore:        hasMore,
 		PreviousCursor: req.PreviousCursor,
-		NextCursor:     nextCursor,
 	}
 
+	hlog.CtxDebugf(ctx, "Successfully fetched posts: %s", util.ToJsonString(resp))
 	return resp, nil
 }
 
@@ -120,7 +118,8 @@ func mapDaoPostToDtoPost(ctx context.Context, daoPost *dao.Post) (*dto.Post, err
 		return nil, err
 	}
 	// Assemble image id and url
-	imageID:= filepath.Base(daoPost.ProcessedImagePath)
+	imageName := filepath.Base(daoPost.ProcessedImagePath)
+	imageID := strings.TrimSuffix(imageName, filepath.Ext(imageName))
 	imageURL, err := service.GetImageService().GetPublicImageURL(ctx, daoPost.ProcessedImagePath)
 	if err != nil {
 		hlog.CtxErrorf(ctx, "Error fetching image URL: %v", err)
@@ -137,6 +136,7 @@ func mapDaoPostToDtoPost(ctx context.Context, daoPost *dao.Post) (*dto.Post, err
 		CreatorName:            user.Name,
 		ImageId:                imageID,
 		ImageURL:               imageURL,
+		CommentCountCursor:     daoPost.CompositeKey,
 	}, nil
 }
 

@@ -79,6 +79,7 @@ func (s *PostServiceImpl) CreatePost(ctx context.Context, req *dto.CreatePostReq
 		Status:         string(insertedPost.Status),
 		CreatedAtMilli: createdAt,
 	}
+	
 
 	return resp, nil
 }
@@ -96,5 +97,6 @@ func (s *PostServiceImpl) insertPost(ctx context.Context, post *dao.Post) (*dao.
 	}
 	insertedId, _ := result.InsertedID.(primitive.ObjectID)
 	post.Id = insertedId
+	hlog.CtxDebugf(ctx, "InsertedID: %s", insertedId.Hex())
 	return post, nil
 }

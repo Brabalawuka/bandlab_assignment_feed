@@ -3,7 +3,7 @@ package dto
 type GetPresignedURLRequest struct {
 	FileName string `query:"fileName" vd:"len($)>0"` // File name
 	FileType string `query:"fileType" vd:"len($)>0"` // File type
-	FileSize int64  `query:"filesize" vd:"$>0"` // File size
+	FileSize int64  `query:"fileSize" vd:"$>0"` // File size
 	UserId   string `header:"userId" vd:"len($)>0"` // User ID
 }
 

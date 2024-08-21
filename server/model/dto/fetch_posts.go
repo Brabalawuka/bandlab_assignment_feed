@@ -19,7 +19,6 @@ type FetchPostsReq struct {
 
 type FetchPostsResp struct {
 	Posts          []*Post `json:"posts"`          // Fetched posts
-	NextCursor     string  `json:"nextCursor"`     // Next cursor
 	PreviousCursor string  `json:"previousCursor"` // Previous cursor
 	HasMore        bool    `json:"hasMore"`        // Whether there are more posts to fetch
 }
@@ -35,6 +34,7 @@ type Post struct {
 	CreatorName            string     `json:"creatorName"`       // Post creator name
 	ImageId                string     `json:"imageId"`           // Post image ID
 	ImageURL               string     `json:"imageURL"`          // Post image URL
+	CommentCountCursor     string     `json:"commentCountCursor"`
 }
 
 type Comment struct {

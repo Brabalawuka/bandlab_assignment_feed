@@ -7,10 +7,11 @@ import (
 	"errors"
 
 	"github.com/cloudwego/hertz/pkg/app"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
 // GenericHandlerFunc is a generic type for handler functions
-type GenericHandlerFunc[Req any, Resp any] func(context.Context, Req) (Resp, error)
+type GenericHandlerFunc[Req any, Resp any] func(context.Context, *Req) (*Resp, error)
 
 // WrapHandler is a generic wrapper for handler functions
 // - It binds and validates the request
@@ -20,12 +21,13 @@ func WrapHandler[Req any, Resp any](handlerFunc GenericHandlerFunc[Req, Resp]) a
     return func(c context.Context, ctx *app.RequestContext) {
         var req Req
         if err := ctx.BindAndValidate(&req); err != nil {
+            hlog.CtxErrorf(c, "[WrapHandler] error binding and validating request: %v", err)
             apiErr := errs.ErrInvalidInput
             ctx.JSON(apiErr.HTTPStatus, response.NewErrorResponse(apiErr))
             return
         }
-        
-        resp, err := handlerFunc(c, req)
+        var resp *Resp
+        resp, err := handlerFunc(c, &req)
         if err != nil {
             var apiErr *errs.APIError
             if errors.As(err, &apiErr) {

@@ -36,6 +36,13 @@ func (s *PostServiceImpl) UpdatePostStatusAndImagePath(ctx context.Context, post
 		return fmt.Errorf("mongo error updating post status and image path: %v", result.Err())
 	}
 
+	var dao *dao.Post
+	if err := result.Decode(&dao); err != nil {
+		return fmt.Errorf("failed to decode post after updating post status and image path: %v", err)
+	}
+
+	hlog.CtxDebugf(ctx, "Successfully updated post status and image path, postId: %s, imagePath: %s", util.ToJsonString(dao), util.ToJsonString(imagePath))
+
 	return nil
 }
 
@@ -58,7 +65,7 @@ func (s *PostServiceImpl) UpdatePostComments(ctx context.Context, postId primiti
 	var(
 		newCommentCount int32		
 		newRecentComments []*dao.Comment
-		now time.Time
+		now = time.Now()
 		newLastCommentAtMilli int64
 	)
 

@@ -23,7 +23,7 @@
 
 ## Highlights
 
-1. **Composite Sorting Cursor** is used to sort the posts by comment count, last comment time and part of post Id.
+1. **Composite Sorting Cursor** is used to sort the posts by comment count, last comment time and part of creatorID.
 2. **Optimistic Lock** is used to update the post for MVP.
 3. **Organised Code** Stucture **handler--sevice--dal** and fulfill single responsibility principle.
 4. **Error Handling** is implemented using **custom error** with **error code** and **error message**.
@@ -42,11 +42,11 @@
 
 ## ER Diagram
 
-- A composite sorting key is used to sort the posts as the cursor. The key is a combination of comment count, last comment time and part of post Id. This ensures no duplicated sorting key.
+- A composite sorting key is used to sort the posts as the cursor. The key is a combination of comment count, last comment time and part of creatorID. This ensures no duplicated sorting key.
 - Composite Key Structure 12 Bytes:
   - 1-4 bytes: commentCount (uint32, 3.1Billion comments)
   - 5-8 bytes: lastCommentAt (unix timestamp, till 2109)
-  - 9-12 bytes: first 4 bytes of PostId (unix timestamp, till 2109)
+  - 9-16 bytes: first 8 bytes of PostID 
  Encode as Base64 string
 - Storage of image using **path** instead of **url** as the URL should be dynamically generated due to possible change of CDN domain name.
 

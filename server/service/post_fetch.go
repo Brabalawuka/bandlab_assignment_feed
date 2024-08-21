@@ -47,6 +47,7 @@ func (s *PostServiceImpl) fetchPosts(ctx context.Context, limit int64, filter bs
 	}
 
 	hasMore = len(posts) > int(limit)
+	hlog.Debugf("[fetchPosts] hasMore: %v, limit: %v, len(posts): %v", hasMore, limit, len(posts))
 	if hasMore {
 		posts = posts[:len(posts)-1]
 	}
@@ -56,7 +57,7 @@ func (s *PostServiceImpl) fetchPosts(ctx context.Context, limit int64, filter bs
 
 func (s *PostServiceImpl) FetchPostsByPostIDCursor(ctx context.Context, limit int64, previousPostId *primitive.ObjectID) (posts []*dao.Post, hasMore bool, err error) {
 	filter := bson.M{
-		"status": bson.M{"$ne": dao.StatusPosted},
+		"status": bson.M{"$eq": dao.StatusPosted},
 	}
 	if previousPostId != nil {
 		filter["_id"] = bson.M{"$lt": *previousPostId}
@@ -66,7 +67,7 @@ func (s *PostServiceImpl) FetchPostsByPostIDCursor(ctx context.Context, limit in
 
 func (s *PostServiceImpl) FetchPostsByCompositCursor(ctx context.Context, limit int64, previousCompositKey *string) (posts []*dao.Post, hasMore bool, err error) {
 	filter := bson.M{
-		"status": bson.M{"$ne": dao.StatusPosted},
+		"status": bson.M{"$eq": dao.StatusPosted},
 	}
 	if previousCompositKey != nil {
 		filter["compositeKey"] = bson.M{"$lt": *previousCompositKey}
