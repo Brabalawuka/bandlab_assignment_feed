@@ -10,14 +10,18 @@ import (
 )
 
 type Config struct {
-	MongoURL string
+	MongoURL      string
 	MongoDatabase string
 
 	R2AccessKey                 string
 	R2SecretKey                 string
-	R2AccountID                 string
+	R2AccountId                 string
 	R2BucketName                string
 	R2ImagePresignExpirationSec int
+	R2PublicBucketURL             string
+	OriginalImagePath           string
+	ProcessedImagePath          string
+	PostRecentCommentsCount     int
 }
 
 // Global AppConfig
@@ -43,9 +47,13 @@ func LoadConfig() {
 		MongoDatabase:               viper.GetString("mongo.initdb_database"),
 		R2AccessKey:                 viper.GetString("r2.access_key"),
 		R2SecretKey:                 viper.GetString("r2.secret_key"),
-		R2AccountID:                 viper.GetString("r2.account_id"),
+		R2AccountId:                 viper.GetString("r2.account_id"),
 		R2BucketName:                viper.GetString("r2.bucket_name"),
 		R2ImagePresignExpirationSec: viper.GetInt("r2.presign_expiration_sec"),
+		R2PublicBucketURL:           viper.GetString("r2.public_bucket_url"),
+		OriginalImagePath:         viper.GetString("image.original_image_path"),
+		ProcessedImagePath:        viper.GetString("image.processed_image_path"),
+		PostRecentCommentsCount:   viper.GetInt("post.recent_comments_count"),
 	}
 
 	hlog.Info("AppConfig: %s", util.ToJsonString(AppConfig))

@@ -6,15 +6,13 @@ import (
 	"bandlab_feed_server/dal/mongodb"
 )
 
-
-
-
 func InitDal(config *config.Config) {
 	err := cloudflare.Initialize(&cloudflare.Config{
 		AccessKey:  config.R2AccessKey,
 		SecretKey:  config.R2SecretKey,
-		AccountID:  config.R2AccountID,
+		AccountId:  config.R2AccountId,
 		BucketName: config.R2BucketName,
+		PublicBucketURL: config.R2PublicBucketURL,
 	})
 	if err != nil {
 		panic(err)

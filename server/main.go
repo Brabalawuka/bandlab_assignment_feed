@@ -5,19 +5,24 @@ package main
 import (
 	"bandlab_feed_server/config"
 	"bandlab_feed_server/dal"
+	"bandlab_feed_server/service"
 
 	"github.com/cloudwego/hertz/pkg/app/server"
+	"github.com/hertz-contrib/logger/accesslog"
 )
 
 func main() {
 	config.Init()
 	dal.InitDal(config.AppConfig)
+	service.Init()
 
 	h := server.New(
 		server.WithHostPorts("0.0.0.0:8010"),
 	)
+	h.Use(accesslog.New())
+	// logger := hertzslog.NewLogger(hertzslog.WithOutput(os.Stdout))
+	// hlog.SetLogger(logger)
 
-	
 	register(h)
 	h.Spin()
 }

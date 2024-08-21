@@ -10,16 +10,24 @@
 ## Resources estimation 5 years
 
 1. Storage for images (Original: 3MB avg size, Resized: 100KB avg size): 1000 *3MB* 24h *365d + 1000* 100KB *24h* 365d * 5y ->> **135TB**
-2. Storage for posts (1KB per post): 1000 * 1KB * 24h * 365d * 5year ->> **43GB** No parition is required
-3. Storage for comments (0.5KB per comment): 100K * 0.5KB * 24h * 365d * 5year ->> **2088GB** (Parition by POST ID may be needed, may cause hot partition issue)
+2. Storage for posts (1KB per post): 1000 *1KB* 24h *365d* 5year ->> **43GB** No parition is required
+3. Storage for comments (0.5KB per comment): 100K *0.5KB* 24h *365d* 5year ->> **2088GB** (Parition by POST Id may be needed, may cause hot partition issue)
 4. Queries - Query Post: 100RPS - Create Post: <1 RPS - Create Comment: 100K / 3600s ->> 28 RPS
    CPU Usage: Assume 50ms per query, 50% time in I/O, 30% CPU usage -> **3 * 4CPU PODs**
 
 ## Requirements Pitfalls and Assumptions
 
-1. Image uploading is heavy operation, up to **100MB** with **weak client network**. I strongly not suggest this large size. However, to support this feature we wont uploading image to the server. We will use **presigned URL** for direct client upload to OSS, then process the image in the background.
-2. Posts retrival are in desc order of **Comment Count**. However, post may have duplicated comment count and it's hard to sort based on cursor approach. Thus, we will design a **composite sorting** cursor (comment count, last comment time, part of post ID).
+1. Image uploading is heavy operation, up to **100MB** single imag with **weak client network**. I strongly not suggest this large size. However, to support this feature we wont uploading image to the server. We will use **presigned URL** for direct client upload to OSS, then process the image in the background.
+2. Posts retrival are in desc order of **Comment Count**. However, post may have duplicated comment count and it's hard to sort based on cursor approach. Thus, we will design a **composite sorting** cursor (comment count, last comment time, part of post Id).
 3. Updating comment count of posts in parallel may cause issue, thus we will use **optimistic lock** to update the post for MVP. However, this may cause issue in the future if the server is under heavy load.
+
+## Highlights
+
+1. **Composite Sorting Cursor** is used to sort the posts by comment count, last comment time and part of creatorID.
+2. **Optimistic Lock** is used to update the post for MVP.
+3. **Organised Code** Stucture **handler--sevice--dal** and fulfill single responsibility principle.
+4. **Error Handling** is implemented using **custom error** with **error code** and **error message**.
+5. **Pre-signed URL** is used to upload image to OSS.
 
 ## Tech Stack
 
@@ -34,17 +42,28 @@
 
 ## ER Diagram
 
+- A composite sorting key is used to sort the posts as the cursor. The key is a combination of comment count, last comment time and part of creatorID. This ensures no duplicated sorting key.
+- Composite Key Structure 12 Bytes:
+  - 1-4 bytes: commentCount (uint32, 3.1Billion comments)
+  - 5-8 bytes: lastCommentAt (unix timestamp, till 2109)
+  - 9-16 bytes: first 8 bytes of PostID 
+ Encode as Base64 string
+- Storage of image using **path** instead of **url** as the URL should be dynamically generated due to possible change of CDN domain name.
+
 ![ER](readme/er.jpeg#center)
 
 ## Creating Post
 
-To optimise, I separated the image uploading process from the post creation process. The client will upload the image directly to the S3 bucket, by calling presigned url.  The client will then send the image URL to the server to create the post. The server will then create the post and store the image URL in the database. Server will then trigger a lambda function to process the image. The lambda function will resize the image and store it back to the S3 bucket. The lambda will then update the post with the resized image URL.
+To optimise, I separated the image uploading process from the post creation process. The client will upload the image directly to the S3 bucket, by calling presigned url. The client will then send the allocated image Id to the server to create the post. The server will then create the post and store the image path in the database. Server will then trigger a lambda function to process the image. The lambda function will resize the image and store it back to the S3 bucket. The lambda will then update the post with the resized image URL.
 
 ![POST](readme/create_post.jpeg#center)
 
+- **Presigned URL** is generated with specific expire time, content type and length.
+- **Delayed Post Status** After the creation of post, other people will not be able to see post image until the image is processed.
+
 ## Creating Comment
 
-When a comment is created, the server will update the post with the latest comment, comment count and the composit sorting cursor as well as the last comment time. This is implemented using a optimistic lock to do the update. If the update fails, the server will retry the update, however, this may cause issue in the future if the server is under heavy load.
+When a comment is created, the server will not only save the comment to DB, it will async update the post with the latest comment, comment count and the composit sorting key (cursor) as well as the last comment time. This is implemented using a optimistic lock to do the update. If the update fails, the server will retry the update, however, this may cause issue in the future if the server is under heavy load. It may also have consistency issue. A queue may be needed to handle this.
 
 ![COMMENT](readme/create_comment.jpeg#center)
 
@@ -56,9 +75,29 @@ Delete comment will mark the comment deleted, meanwhile async modify comment cou
 
 ## Fetching Posts
 
-To fetch the posts, the server will use the composite sorting cursor to fetch the posts. The server will fetch the posts in batches and return the posts to the client. The client will then use the last post in the batch to fetch the next batch of posts.
+To fetch the posts, the server will use the composite sorting cursor to fetch the posts. The server will fetch the posts in batches and return the posts to the client. The client will then use the last post in the batch to fetch the next batch of posts. Since the sorting key updates dynamically, there is possibility of duplicated posts and missing posts. 
 
 ![FETCH](readme/fetch.jpeg#center)
+
+- Client will fetch the posts until no more posts are returned.
+- Client will have to deduplicate the posts by the post id, since the sorting cursor is updated dynamically.
+
+## Due to time limitation
+
+- Image resizing and formating is not implemented. The lambda function is mocked by a goroutine.
+- Unit tests are not fully covered. only one unit test /handler/post_test.go is implemented. It demos how to test the handler with gomock
+- Integration test does not cover all the cases. Only happy path is tested.
+
+## How to run
+
+- Ensure you machine has docker and docker-compose installed, ensure you computer has go1.21 installed.
+- Clone the project and go to root folder
+- Replace the .env file with correct values (cloudflare r2 secrets)
+- Run `docker-compose up` to start the server and the database
+- Run 'cd server' to go to server folder
+- Run `go test -v ./integration_test/. -run ^TestIntegration$` to test using the integration test
+
+
 
 ## Future Improvements
 
@@ -75,5 +114,4 @@ To fetch the posts, the server will use the composite sorting cursor to fetch th
 2. Add CICD and Test coverages and finish all UNITS tests
 3. Add monitoring + alerting / logging + tracing for the services and DB
 4. Add rate limiting and authentication for the services
-
-
+5. **Sync with PM to ensure all compromisation is accepted and could be fixed in the future**
