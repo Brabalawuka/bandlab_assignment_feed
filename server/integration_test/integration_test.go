@@ -76,7 +76,7 @@ func TestPingFeedService(t *testing.T) {
 
 	require.Equal(t, consts.StatusOK, resp.StatusCode(), "Expected status code 200")
 
-	hlog.Infof("\n\n-----Step 1: Ping feed service success----\n\n")
+	hlog.Infof("\n-----Step 1: Ping feed service success----\n\n\n")
 }
 
 func TestFetchPosts(t *testing.T) {
@@ -102,7 +102,7 @@ func TestFetchPosts(t *testing.T) {
 	require.Equal(t, 0, len(fetchPostResp.Data.Posts), "Expected 0 posts")
 	require.Equal(t, false, fetchPostResp.Data.HasMore, "Expected no more posts")
 
-	hlog.Infof("\n\n-----Step 2: Fetch posts success----\n\n")
+	hlog.Infof("\n-----Step 2: Fetch posts success----\n\n\n")
 }
 
 func TestGetPreSignedURL(t *testing.T) {
@@ -150,7 +150,6 @@ func TestGetPreSignedURL(t *testing.T) {
 	uploadImagePath = presignResp.Data.ImagePath
 	uploadImagePresignUrl = presignResp.Data.URL
 	uploadURLExpires = presignResp.Data.ExpiresAtUnix
-	hlog.Infof("presigned url: %s, image path: %s, expire time: %d", uploadImagePresignUrl, uploadImagePath, uploadURLExpires)
 	createdImageName = filepath.Base(uploadImagePath)
 
 	// upload the image to the presigned url
@@ -166,7 +165,11 @@ func TestGetPreSignedURL(t *testing.T) {
 	require.NoError(t, err, "Failed to upload image")
 	require.Equal(t, consts.StatusOK, uploadResp.StatusCode(), "Expected status code 200")
 
-	hlog.Infof("\n\n-----Step 3: Get presigned url success, and upload image success----\n\n")
+	hlog.Infof("\n-----Step 3: Get presigned url success, and upload image success----\n")
+	hlog.Infof("presigned url: %s, image path: %s, expire time: %d", uploadImagePresignUrl, uploadImagePath, uploadURLExpires)
+	hlog.Infof("created image name: %s", createdImageName)
+	hlog.Infof("\n-------------------------------------------------\n\n\n")
+
 }
 
 func TestCreate3Post(t *testing.T) {
@@ -174,7 +177,7 @@ func TestCreate3Post(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		postPayload := dto.CreatePostReq{
 			ImageFilePath: uploadImagePath,
-			Content:       fmt.Sprintf("Test post content %d", i+1),
+			Content:       fmt.Sprintf("Test post content %d, %s", i+1, t.Name()),
 		}
 
 		// Marshal the payload to JSON
@@ -205,7 +208,9 @@ func TestCreate3Post(t *testing.T) {
 		require.Equal(t, createPostResp.Data.Status, string(dao.StatusPending), "Expected status to be pending")
 		createdPostID = append(createdPostID, createPostResp.Data.Id)
 
-		hlog.Infof("\n\n-----Step 4: Create post No%d success----\n\n", i+1)
+		hlog.Infof("\n-----Step 4: Create post No%d success----\n", i+1)
+		hlog.Infof("post id: %s, content: %s", createPostResp.Data.Id, createPostResp.Data.Content)
+		hlog.Infof("\n-------------------------------------------------\n\n\n")
 	}
 
 }
@@ -236,7 +241,9 @@ func TestFetchPostsInDefaultOrder(t *testing.T) {
 	require.Equal(t, createdPostID[len(createdPostID)-1], lastPost.Id, "Expected post id to match")
 	require.Equal(t, "https://pub-e7ae7f4305084b3ea6e32696f803a332.r2.dev/processed/"+createdImageName, lastPost.ImageURL, "Expected content to match")
 
-	hlog.Infof("\n\n-----Step 5: Fetch posts success----\n\n")
+	hlog.Infof("\n-----Step 5: Fetch posts success----\n")
+	hlog.Infof("last post id: %s, image url: %s", lastPost.Id, lastPost.ImageURL)
+	hlog.Infof("\n-------------------------------------------------\n\n\n")
 }
 
 func TestCommentOnPost1(t *testing.T) {
@@ -268,6 +275,10 @@ func TestCommentOnPost1(t *testing.T) {
 	require.NoError(t, err, "Failed to unmarshal response")
 	require.Equal(t, 0, createCommentResp.Code, "Expected code 0")
 	require.Equal(t, createdPostID[0], createCommentResp.Data.PostId, "Expected post id to match")
+
+	hlog.Infof("\n-----Step 6: Comment on post 1 success----\n\n")
+	hlog.Infof("comment id: %s, post id: %s", createCommentResp.Data.Id, createCommentResp.Data.PostId)
+	hlog.Infof("\n-------------------------------------------------\n\n\n")
 }
 
 func TestFetchPostsInCommentCountOrder(t *testing.T) {
@@ -296,7 +307,9 @@ func TestFetchPostsInCommentCountOrder(t *testing.T) {
 	require.Equal(t, createdPostID[0], commenttedPost.Id, "Expected post id to match")
 	require.Equal(t, "https://pub-e7ae7f4305084b3ea6e32696f803a332.r2.dev/processed/"+createdImageName, commenttedPost.ImageURL, "Expected content to match")
 
-	hlog.Infof("\n\n-----Step 7: Fetch posts in comment count order success----\n\n")
+	hlog.Infof("\n-----Step 7: Fetch posts in comment count order success----\n\n")
+	hlog.Infof("commentted post id: %s, image url: %s", commenttedPost.Id, commenttedPost.ImageURL)
+	hlog.Infof("\n-------------------------------------------------\n\n\n")
 }
 
 

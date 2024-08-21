@@ -3,8 +3,10 @@ package cloudflare
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -60,9 +62,16 @@ func Initialize(cfg *Config) error {
 			return
 		}
 
+		customHTTPClient := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		}
+
 		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
 			config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.AccessKey, cfg.SecretKey, "")),
 			config.WithRegion("auto"),
+			config.WithHTTPClient(customHTTPClient), // Skip SSL verification first since running in Docker
 		)
 		if err != nil {
 			initError = fmt.Errorf("[r2service] failed to load AWS config: %w", err)
