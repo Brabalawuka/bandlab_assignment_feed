@@ -1,52 +1,52 @@
 # Bandlab Assignment
 
-## UseCase Analysis
+## Use Case Analysis
 
 1. Create Post, with Image Uploading
-2. Create comments binded to a post
+2. Create comments bound to a post
 3. Delete own comments
-4. List posts order by comments count
+4. List posts ordered by comments count
 
 ## Resources estimation 5 years
 
-1. Storage for images (Original: 3MB avg size, Resized: 100KB avg size): 1000 *3MB* 24h *365d + 1000* 100KB *24h* 365d * 5y ->> **135TB**
-2. Storage for posts (1KB per post): 1000 *1KB* 24h *365d* 5year ->> **43GB** No parition is required
-3. Storage for comments (0.5KB per comment): 100K *0.5KB* 24h *365d* 5year ->> **2088GB** (Parition by POST Id may be needed, may cause hot partition issue)
+1. Storage for images (Original: 3MB avg size, Resized: 100KB avg size): 1000 * 3MB * 24h * 365d + 1000 * 100KB * 24h * 365d * 5y ->> **135TB**
+2. Storage for posts (1KB per post): 1000 * 1KB * 24h * 365d * 5 years ->> **43GB** No partition is required
+3. Storage for comments (0.5KB per comment): 100K * 0.5KB * 24h * 365d * 5 years ->> **2088GB** (Partition by POST Id may be needed, may cause hot partition issue)
 4. Queries - Query Post: 100RPS - Create Post: <1 RPS - Create Comment: 100K / 3600s ->> 28 RPS
    CPU Usage: Assume 50ms per query, 50% time in I/O, 30% CPU usage -> **3 * 4CPU PODs**
 
 ## Requirements Pitfalls and Assumptions
 
-1. Image uploading is heavy operation, up to **100MB** single imag with **weak client network**. I strongly not suggest this large size. However, to support this feature we wont uploading image to the server. We will use **presigned URL** for direct client upload to OSS, then process the image in the background.
-2. Posts retrival are in desc order of **Comment Count**. However, post may have duplicated comment count and it's hard to sort based on cursor approach. Thus, we will design a **composite sorting** cursor (comment count, last comment time, part of post Id).
-3. Updating comment count of posts in parallel may cause issue, thus we will use **optimistic lock** to update the post for MVP. However, this may cause issue in the future if the server is under heavy load.
+1. Image uploading is a heavy operation, up to **100MB** single image with **weak client network**. I strongly do not suggest this large size. However, to support this feature we won't upload the image to the server. We will use **presigned URL** for direct client upload to OSS, then process the image in the background.
+2. Posts retrieval is in descending order of **Comment Count**. However, posts may have duplicated comment counts and it's hard to sort based on cursor approach. Thus, we will design a **composite sorting** cursor (comment count, last comment time, part of post Id).
+3. Updating comment count of posts in parallel may cause issues, thus we will use **optimistic lock** to update the post for MVP. However, this may cause issues in the future if the server is under heavy load.
 
 ## Highlights
 
-1. **Composite Sorting Cursor** is used to sort the posts by comment count, last comment time and part of creatorID.
+1. **Composite Sorting Cursor** is used to sort the posts by comment count, last comment time, and part of creatorID.
 2. **Optimistic Lock** is used to update the post for MVP.
-3. **Organised Code** Stucture **handler--sevice--dal** and fulfill single responsibility principle.
+3. **Organized Code** Structure **handler--service--dal** and fulfill single responsibility principle.
 4. **Error Handling** is implemented using **custom error** with **error code** and **error message**.
-5. **Pre-signed URL** is used to upload image to OSS.
+5. **Pre-signed URL** is used to upload images to OSS.
 
 ## Tech Stack
 
 1. Server: Golang
 2. Image Storage: AWS S3 (Use Cloudflare R2 to mock)
-3. Database: MongoDB (User a local Container to Mock) MongoDB is used as it supports dynamic schema and is easy to scale.
+3. Database: MongoDB (Use a local Container to Mock) MongoDB is used as it supports dynamic schema and is easy to scale.
 4. Image Processing: AWS Lambda (Use a server goroutine to mock)
 
-## Architecture
+## UseCase Diagram
 
 ![Reading](readme/architecutre.png#center)  
 
 ## ER Diagram
 
-- A composite sorting key is used to sort the posts as the cursor. The key is a combination of comment count, last comment time and part of creatorID. This ensures no duplicated sorting key.
+- A composite sorting key is used to sort the posts as the cursor. The key is a combination of comment count, last comment time, and part of creatorID. This ensures no duplicated sorting key.
 - Composite Key Structure 12 Bytes:
-  - 1-4 bytes: commentCount (uint32, 3.1Billion comments)
+  - 1-4 bytes: commentCount (uint32, 3.1 Billion comments)
   - 5-8 bytes: lastCommentAt (unix timestamp, till 2109)
-  - 9-16 bytes: first 8 bytes of PostID 
+  - 9-16 bytes: first 8 bytes of PostID
  Encode as Base64 string
 - Storage of image using **path** instead of **url** as the URL should be dynamically generated due to possible change of CDN domain name.
 
@@ -54,64 +54,115 @@
 
 ## Creating Post
 
-To optimise, I separated the image uploading process from the post creation process. The client will upload the image directly to the S3 bucket, by calling presigned url. The client will then send the allocated image Id to the server to create the post. The server will then create the post and store the image path in the database. Server will then trigger a lambda function to process the image. The lambda function will resize the image and store it back to the S3 bucket. The lambda will then update the post with the resized image URL.
+To optimize, I separated the image uploading process from the post creation process. The client will upload the image directly to the S3 bucket, by calling presigned URL. The client will then send the allocated image Id to the server to create the post. The server will then create the post and store the image path in the database. The server will then trigger a lambda function to process the image. The lambda function will resize the image and store it back to the S3 bucket. The lambda will then update the post with the resized image URL.
 
 ![POST](readme/create_post.jpeg#center)
 
-- **Presigned URL** is generated with specific expire time, content type and length.
-- **Delayed Post Status** After the creation of post, other people will not be able to see post image until the image is processed.
+- **Presigned URL** is generated with specific expiry time, content type, and length.
+- **Delayed Post Status** After the creation of the post, other people will not be able to see the post image until the image is processed.
 
 ## Creating Comment
 
-When a comment is created, the server will not only save the comment to DB, it will async update the post with the latest comment, comment count and the composit sorting key (cursor) as well as the last comment time. This is implemented using a optimistic lock to do the update. If the update fails, the server will retry the update, however, this may cause issue in the future if the server is under heavy load. It may also have consistency issue. A queue may be needed to handle this.
+When a comment is created, the server will not only save the comment to DB, it will asynchronously update the post with the latest comment, comment count, and the composite sorting key (cursor) as well as the last comment time. This is implemented using an optimistic lock to do the update. If the update fails, the server will retry the update, however, this may cause issues in the future if the server is under heavy load. It may also have consistency issues. A queue may be needed to handle this.
 
 ![COMMENT](readme/create_comment.jpeg#center)
 
 ## Deleting Comments
 
-Delete comment will mark the comment deleted, meanwhile async modify comment count and latest comment.
+Deleting a comment will mark the comment as deleted, meanwhile asynchronously modify comment count and latest comment.
 
 ![COMMENT](readme/delete_comment.jpeg#center)
 
 ## Fetching Posts
 
-To fetch the posts, the server will use the composite sorting cursor to fetch the posts. The server will fetch the posts in batches and return the posts to the client. The client will then use the last post in the batch to fetch the next batch of posts. Since the sorting key updates dynamically, there is possibility of duplicated posts and missing posts. 
+To fetch the posts, the server will use the composite sorting cursor to fetch the posts. The server will fetch the posts in batches and return the posts to the client. The client will then use the last post in the batch to fetch the next batch of posts. Since the sorting key updates dynamically, there is a possibility of duplicated posts and missing posts.  
 
 ![FETCH](readme/fetch.jpeg#center)
 
-- Client will fetch the posts until no more posts are returned.
-- Client will have to deduplicate the posts by the post id, since the sorting cursor is updated dynamically.
+- The client will fetch the posts until no more posts are returned.
+- The client will have to deduplicate the posts by the post id, since the sorting cursor is updated dynamically.
 
 ## Due to time limitation
 
-- Image resizing and formating is not implemented. The lambda function is mocked by a goroutine.
-- Unit tests are not fully covered. only one unit test /handler/post_test.go is implemented. It demos how to test the handler with gomock
-- Integration test does not cover all the cases. Only happy path is tested.
+- Image resizing and formatting is not implemented. The lambda function is mocked by a goroutine.
+- Unit tests are not fully covered. Only one unit test /handler/post_test.go is implemented. It demonstrates how to test the handler with gomock.
+- Integration test does not cover all the cases. Only the happy path is tested.
 
 ## How to run
 
-- Ensure you machine has docker and docker-compose installed, ensure you computer has go1.21 installed.
-- Clone the project and go to root folder
+- Ensure your machine has docker and docker-compose installed, ensure your computer has go1.21 installed.
+- Clone the project and go to the root folder
 - Replace the .env file with correct values (cloudflare r2 secrets)
 - Run `docker-compose up` to start the server and the database
-- Run 'cd server' to go to server folder
+- Run 'cd server' to go to the server folder
 - Run `go test -v ./integration_test/. -run ^TestIntegration$` to test using the integration test
-
-
 
 ## Future Improvements
 
-1. Use multipart upload for weak network / Let client to resize the image down to 5MB before upload
+1. Use multipart upload for weak network / Let client resize the image down to 5MB before upload
 2. Start Image processing when uploading finishes with callback
 3. Use a queue to update post comment count + latest comments
 4. Cache hot posts and comments
-5. Aggregate the udpating comment count in the post document to reduce the update frequency
+5. Aggregate the updating comment count in the post document to reduce the update frequency
 6. Create a collection to store image metadata and delete the image if the post is not posted
 
 ## Things to take note before production
 
 1. Replace mock with real services
-2. Add CICD and Test coverages and finish all UNITS tests
+2. Add CICD and Test coverages and finish all UNIT tests
 3. Add monitoring + alerting / logging + tracing for the services and DB
 4. Add rate limiting and authentication for the services
-5. **Sync with PM to ensure all compromisation is accepted and could be fixed in the future**
+5. **Sync with PM to ensure all compromises are accepted and could be fixed in the future**
+
+
+## Other Notes
+
+- Calling Logic: Router -> Handler -> Service -> DAL
+
+### Directory Structure
+
+- Root Directory
+  - Dockerfile: Defines the Docker build process for the application.
+  - go.mod: Specifies the module path and dependencies for the Go project.
+  - go.sum: Contains checksums for the module dependencies.
+  - handler.go: Contains generic handler functions and utilities for the application.
+  - router.go: Defines the routing for the HTTP server.
+- Common
+  - errs/error.go: Defines custom error types and error handling utilities.
+  - response/response.go: Contains structures and functions for standardizing API responses.
+- Config
+  - config.go: Handles application configuration loading and parsing.
+  - config.yml: Configuration file containing application settings.
+- DAL (Data Access Layer)
+  - cloudflare/r2.go: Manages interactions with Cloudflare R2 for file storage.
+  - init.go: Initializes the data access layer components.
+  - mongodb/mongo.go: Manages MongoDB connections and operations.
+- Handler
+  - comments.go: Handles HTTP requests related to comments.
+  - ping.go: Provides a simple health check endpoint.
+  - post.go: Handles HTTP requests related to posts.
+  - post_test.go: Contains unit tests for post handlers.
+- Integration Test
+  - http_client.go: Provides an HTTP client for integration tests.
+  - integration_test.go: Contains integration tests for the application.
+  - test_pic_1.jpg and test_pic_2.png: Test images used in integration tests.
+- Model
+  - dao/: Defines the data access object for comments, posts, and users. Storing in DB
+  - dto/: Data transfer object for creating comments, posts, and users. Transfer to Client
+- Service
+  - comment.go: Defines the interface and implementation for comment-related services.
+  - comment_create.go: Implements the logic for creating comments.
+  - comment_delete.go: Implements the logic for deleting comments.
+  - image.go: Manages image-related operations, including presigned URLs and image processing.
+  - init.go: Initializes the service layer components.
+  - **mocks/: Contains mock implementations for unit testing.**
+  - post.go: Defines the interface and implementation for post-related services.
+  - post_create.go: Implements the logic for creating posts.
+  - post_fetch.go: Implements the logic for fetching posts.
+  - post_update.go: Implements the logic for updating posts.
+  - user.go: Manages user-related operations.
+- Util
+  - async/async.go: Provides utilities for asynchronous operations.
+  - compositkey.go: Contains logic for handling composite keys.
+  - json.go: Provides utilities for JSON serialization and deserialization.
+

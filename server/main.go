@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	// Config must be initialized before dal and service
 	config.Init()
 	dal.InitDal(config.AppConfig)
 	service.Init()
@@ -20,9 +21,8 @@ func main() {
 		server.WithHostPorts("0.0.0.0:8010"),
 	)
 	h.Use(accesslog.New())
-	// logger := hertzslog.NewLogger(hertzslog.WithOutput(os.Stdout))
-	// hlog.SetLogger(logger)
 
 	register(h)
+	
 	h.Spin()
 }

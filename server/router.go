@@ -9,6 +9,7 @@ import (
 )
 
 func register(r *server.Hertz) {
+	
 	r.GET("/ping", handler.Ping)
 
 	v1 := r.Group("/v1")

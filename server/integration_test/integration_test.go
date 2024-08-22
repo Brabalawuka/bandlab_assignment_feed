@@ -41,13 +41,13 @@ func TestIntegration(t *testing.T) {
 	// Step 1, Ping Feed Service Operation
 	TestPingFeedService(t)
 
-	// Step 2, test Fetch Post Operation, should return zero post
+	// Step 2, test Fetch Post Operation, should return zero post if the mongo is just inited
 	//TestFetchPosts(t)
 
 	// Step 3. try to get presigned url of the test_pic_1.jpg in current folder
 	TestGetPreSignedURL(t)
 
-	// Step 4, try to create 5 post using the image just uploaded
+	// Step 4, try to create 3 post using the image just uploaded
 	TestCreate3Post(t)
 
 	hlog.Infof("Sleeping for 3 seconds to wait for image processing")
