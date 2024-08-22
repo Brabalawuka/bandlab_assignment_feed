@@ -5,6 +5,7 @@ import (
 	"bandlab_feed_server/model/dao"
 	"bandlab_feed_server/model/dto"
 	"context"
+	"time"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson"
@@ -45,7 +46,7 @@ func (s *CommentServiceImpl) DeleteComment(ctx context.Context, req *dto.DeleteC
 	// - a retry of max 10 times with 100ms interval is used to handle the race condition
 	s.updatePostCommentsInfoAsync(ctx, comment.PostId, softDeletedComment, nil)
 
-	return &dto.DeleteCommentResp{Id: commentId.Hex()}, nil
+	return &dto.DeleteCommentResp{Id: commentId.Hex(), DeletedAtMilli: softDeletedComment.UpdatedAtMilli}, nil
 }
 
 func (s *CommentServiceImpl) fetchComment(ctx context.Context, commentId primitive.ObjectID) (*dao.Comment, error) {
@@ -64,7 +65,7 @@ func (s *CommentServiceImpl) fetchComment(ctx context.Context, commentId primiti
 
 func (s *CommentServiceImpl) softDeleteComment(ctx context.Context, commentId primitive.ObjectID) (*dao.Comment, error) {
 	collection := s.mongoClient.Collection(s.mongoCollection)
-	update := bson.M{"$set": bson.M{"status": dao.CommentStatusDeleted}}
+	update := bson.M{"$set": bson.M{"status": dao.CommentStatusDeleted, "updatedAtMilli": time.Now().UnixMilli()}}
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
 	var updatedComment dao.Comment
 	err := collection.FindOneAndUpdate(ctx, bson.M{"_id": commentId}, update, opts).Decode(&updatedComment)
@@ -77,11 +78,11 @@ func (s *CommentServiceImpl) softDeleteComment(ctx context.Context, commentId pr
 
 func (s *CommentServiceImpl) isCommentDeletable(comment *dao.Comment, userId string) bool {
 	if comment.Status != dao.CommentStatusPosted {
-		hlog.Errorf("[isCommentDeletable] comment not allowed to delete, id: %s, status: %s", comment.Creator.Hex(), comment.Status)
+		hlog.Errorf("[isCommentDeletable] comment not allowed to delete, creatorid: %s, status: %s", comment.Creator.Hex(), comment.Status)
 		return false
 	}
 	if comment.Creator.Hex() != userId {
-		hlog.Errorf("[isCommentDeletable] comment not allowed to delete, id: %s, user id: %s", comment.Creator.Hex(), userId)
+		hlog.Errorf("[isCommentDeletable] comment not allowed to delete, creatorid: %s,  current user id: %s", comment.Creator.Hex(), userId)
 		return false
 	}
 	return true

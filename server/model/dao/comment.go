@@ -14,6 +14,7 @@ type Comment struct {
 	Creator        primitive.ObjectID `bson:"creator"`            // Comment creator ID
 	CreatorName    string             `bson:"creatorName"`        // Comment creator name
 	CreatedAtMilli int64              `bson:"createdAtMilli"`     // Comment created time in milliseconds
+	UpdatedAtMilli int64              `bson:"updatedAtMilli"`     // Comment updated time in milliseconds
 }
 
 // CommentStatus represents the status of a comment

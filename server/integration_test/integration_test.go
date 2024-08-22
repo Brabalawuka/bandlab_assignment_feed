@@ -38,7 +38,7 @@ var (
 // This can only be run once as the posts are alr created in the first run
 // To run more times you need to comment out the Step 2
 func TestIntegration(t *testing.T) {
-	// Step 1, Ping Feed Service Operation
+	// Step 1, Ping Feed Service Operation 
 	TestPingFeedService(t)
 
 	// Step 2, test Fetch Post Operation, should return zero post if the mongo is just inited
@@ -74,7 +74,6 @@ func TestPingFeedService(t *testing.T) {
 	resp := &protocol.Response{}
 	err := hertzClient.Do(context.Background(), req, resp)
 	require.NoError(t, err, "Failed to ping feed service")
-
 	require.Equal(t, consts.StatusOK, resp.StatusCode(), "Expected status code 200")
 
 	hlog.Infof("\n-----Step 1: Ping feed service success----\n\n\n")
@@ -95,7 +94,6 @@ func TestFetchPosts(t *testing.T) {
 	require.NoError(t, err, "Failed to fetch posts")
 
 	require.Equal(t, consts.StatusOK, resp.StatusCode(), "Expected status code 200")
-
 	var fetchPostResp response.GeneralResponse[*dto.FetchPostsResp]
 	err = json.Unmarshal(resp.Body(), &fetchPostResp)
 	require.NoError(t, err, "Failed to unmarshal response")
@@ -160,7 +158,7 @@ func TestGetPreSignedURL(t *testing.T) {
 	uploadReq.SetBody(fileBuffer)
 	uploadReq.SetHeader("Content-Type", mimeType)
 	uploadReq.SetHeader("Content-Length", fmt.Sprintf("%d", fileSize))
-
+	hlog.Infof("upload image presigned url: %s", uploadImagePresignUrl)
 	uploadResp := &protocol.Response{}
 	err = hertzClient.Do(context.Background(), uploadReq, uploadResp)
 	require.NoError(t, err, "Failed to upload image")
@@ -229,13 +227,12 @@ func TestFetchPostsInDefaultOrder(t *testing.T) {
 	resp := &protocol.Response{}
 	err := hertzClient.Do(context.Background(), req, resp)
 	require.NoError(t, err, "Failed to fetch posts")
-
 	require.Equal(t, consts.StatusOK, resp.StatusCode(), "Expected status code 200")
 
 	var fetchPostResp response.GeneralResponse[*dto.FetchPostsResp]
 	err = json.Unmarshal(resp.Body(), &fetchPostResp)
-	lastPost := fetchPostResp.Data.Posts[0] // last post is the first fetch record
 	require.NoError(t, err, "Failed to unmarshal response")
+	lastPost := fetchPostResp.Data.Posts[0] // last post is the first fetch record
 	require.Equal(t, 0, fetchPostResp.Code, "Expected code 0")
 	require.Greater(t, len(fetchPostResp.Data.Posts), 0, "Greater than 0 posts")
 	require.Equal(t, false, fetchPostResp.Data.HasMore, "Expected no more posts")
@@ -307,7 +304,6 @@ func TestFetchPostsInCommentCountOrder(t *testing.T) {
 	require.Equal(t, false, fetchPostResp.Data.HasMore, "Expected no more posts")
 	require.Equal(t, createdPostID[0], commenttedPost.Id, "Expected post id to match")
 	require.Equal(t, "https://pub-e7ae7f4305084b3ea6e32696f803a332.r2.dev/processed/"+createdImageName, commenttedPost.ImageURL, "Expected content to match")
-
 	hlog.Infof("\n-----Step 7: Fetch posts in comment count order success----\n\n")
 	hlog.Infof("commentted post id: %s, image url: %s", commenttedPost.Id, commenttedPost.ImageURL)
 	hlog.Infof("\n-------------------------------------------------\n\n\n")

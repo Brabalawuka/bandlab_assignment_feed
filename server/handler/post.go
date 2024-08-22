@@ -76,7 +76,6 @@ func HandleGetPost(ctx context.Context, req *dto.FetchPostsReq) (*dto.FetchPosts
 			return nil, err
 		}
 	case dto.OrderByPostID:
-	default:
 		var err error
 		var postID *primitive.ObjectID
 		if req.PreviousCursor != "" {
@@ -92,6 +91,9 @@ func HandleGetPost(ctx context.Context, req *dto.FetchPostsReq) (*dto.FetchPosts
 			hlog.CtxErrorf(ctx, "[HandleGetPost] error fetching posts: %v", err)
 			return nil, err
 		}
+	default:
+		hlog.CtxErrorf(ctx, "[HandleGetPost] invalid order by: %v", req.OrderBy)
+		return nil, errs.ErrInvalidRequest
 	}
 
 	var responsePosts []*dto.Post

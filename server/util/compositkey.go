@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"time"
 
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -20,5 +21,8 @@ func GenerateCompositeKey(commentCount int32, lastCommentAt time.Time, postID pr
 	binary.BigEndian.PutUint32(buf[0:4], uint32(commentCount))
 	binary.BigEndian.PutUint32(buf[4:8], uint32(lastCommentAt.Unix()))
 	copy(buf[8:16], postID[4:]) // Assuming Id is a [12]byte
-	return base64.StdEncoding.EncodeToString(buf)
+	key :=  base64.StdEncoding.EncodeToString(buf)
+
+	hlog.Infof("composite key: %s, commentCount: %d, lastCommentAt: %s, postID: %s", key, commentCount, lastCommentAt, postID)
+	return key
 }

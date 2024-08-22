@@ -88,7 +88,7 @@ func (s *CommentServiceImpl) createAndInsertComment(ctx context.Context, req *dt
 	comment := &dao.Comment{
 		PostId:         post.Id,
 		Content:        req.Content,
-		Status:         "ACTIVE",
+		Status:         dao.CommentStatusPosted,
 		Creator:        user.Id,
 		CreatorName:    user.Name,
 		CreatedAtMilli: createdAt,
